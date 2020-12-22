@@ -7,5 +7,13 @@
 </head>
 <body>
     <h1>Chat App!</h1>
+    <form id="chat">
+        <input type="text" placeholder="Enter the message you want to send!" name="chatMessage" style="width: 300px;">
+        <button>Send</button>
+    </form>
+    <!-- Here we load the server side version of the Socket.io library, to make the clients
+    connections to the server possible -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/public/js/chatClientSide.js"></script>
 </body>
 </html>
