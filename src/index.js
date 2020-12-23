@@ -30,8 +30,22 @@ io.on('connection', (socket) => {
     //Emit the event for all clients except the current one
     socket.broadcast.emit('message', 'A new user has entered the chat room!')
 
-    socket.on('sendMessage', (message) => {
+    /* We are listening here in the server for the "sendMessage" event, when we catch the event,
+    we use the "message" data that comes along with the event to send that "message" to all the
+    clients by emitting a "message" event and attaching the string data we received from the 
+    "sendMessage" event emitted by one of the clients, then we acknowledge the fact that we received
+    that "sendMessage" event by calling a callback function we received that here we are naming 
+    as "acknowledge", we are even providing a static string parameter to the function, this
+    function is declared in the client side, in the part of the code that emits this "sendMessage"
+    event, and it will have access to the data we have provided to it here ('Greetings from the server! :)')
+     */
+    socket.on('sendMessage', (message, acknowledge) => {
         io.emit('message', `New message: ${message}`)
+        acknowledge('Delivered by the server!')
+    })
+
+    socket.on('sendLocation', ({latitude, longitude}) => {
+        io.emit('message', `https://google.com/maps?q=${latitude},${longitude}`)
     })
 
     socket.on('disconnect', () => {
