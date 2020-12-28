@@ -2,7 +2,7 @@ const path = require('path')
 const http = require('http')
 const express = require('express')
 const socketio = require('socket.io')
-
+const Filter = require('bad-words')
 
 const viewsPath = path.join(__dirname, '..', '/templates/views')
 const pulicsPath = path.join(__dirname, '..', '/public')
@@ -12,6 +12,10 @@ const server = http.createServer(app)
 const io = socketio(server)
 
 const port = process.env.PORT
+
+/* New foul language filter form the "bad-words" npm module, it replaces the foul language 
+with the specified placeholder character, among other things */
+const filter = new Filter({placeHolder : '*'})
 
 /* Here we are specifying the paths that express can use to fond some of the static files
 that the server (app) will serve of that will be imported inside the HTML documents, 
@@ -40,12 +44,15 @@ io.on('connection', (socket) => {
     event, and it will have access to the data we have provided to it here ('Greetings from the server! :)')
      */
     socket.on('sendMessage', (message, acknowledge) => {
+        if(filter.isProfane(message))
+            return acknowledge('Profanity is not allowed in the chat!')
         io.emit('message', `New message: ${message}`)
-        acknowledge('Delivered by the server!')
+        acknowledge('Message delivered by the server!')
     })
 
-    socket.on('sendLocation', ({latitude, longitude}) => {
-        io.emit('message', `https://google.com/maps?q=${latitude},${longitude}`)
+    socket.on('sendLocation', ({latitude, longitude}, acknowledge) => {
+        io.emit('locationMessage', `https://google.com/maps?q=${latitude},${longitude}`)
+        acknowledge('Location shared!')
     })
 
     socket.on('disconnect', () => {
