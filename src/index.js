@@ -3,6 +3,17 @@ const http = require('http')
 const express = require('express')
 const socketio = require('socket.io')
 const Filter = require('bad-words')
+const {
+    generateMessageObject,
+    generateLocationObject
+} = require('./utils/messagesObject')
+
+const {
+    addUser,
+    removeUser,
+    getUser,
+    getUsersInRoom
+} = require('./utils/users')
 
 const viewsPath = path.join(__dirname, '..', '/templates/views')
 const pulicsPath = path.join(__dirname, '..', '/public')
@@ -30,9 +41,34 @@ let count = 0;
 
 io.on('connection', (socket) => {
     console.log(`New connection`)
-    socket.emit('message', 'Welcome!')
-    //Emit the event for all clients except the current one
-    socket.broadcast.emit('message', 'A new user has entered the chat room!')
+    
+
+    socket.on('join', ({ username, room }, acknowledge) => {
+        const { error, user} = addUser({ 
+            id : socket.id,
+            username,
+            room
+        })
+        
+        if(error)
+            return acknowledge(error)
+        
+        /* Joins this socket or client connection to a specific socket.io "room", that means,
+        this connection or client gets assigned a specific "namespace" we can use to collect
+        different connections under specific "groups"
+        a */
+        socket.join(user.room)
+
+        socket.emit('message', generateMessageObject('Welcome to the chat app!', 'Admin'))
+        /* Since we previously joined our new connection to the chat "room" (socket connection group) 
+        that the user specified, we can now boradcast the message that states that a new chat user has  
+        entered the room pointing to that specific connections group, like using a namespace 
+        ('boradcast.to(room)')*/
+        socket.broadcast.to(user.room).emit('message', generateMessageObject(`${user.username} has joined the chat room!`, 'Admin'))
+
+        acknowledge()
+
+    })
 
     /* We are listening here in the server for the "sendMessage" event, when we catch the event,
     we use the "message" data that comes along with the event to send that "message" to all the
@@ -46,17 +82,21 @@ io.on('connection', (socket) => {
     socket.on('sendMessage', (message, acknowledge) => {
         if(filter.isProfane(message))
             return acknowledge('Profanity is not allowed in the chat!')
-        io.emit('message', `New message: ${message}`)
+        const user = getUser(socket.id)
+        io.to(user.room).emit('message', generateMessageObject(message, user.username))
         acknowledge('Message delivered by the server!')
     })
 
     socket.on('sendLocation', ({latitude, longitude}, acknowledge) => {
-        io.emit('locationMessage', `https://google.com/maps?q=${latitude},${longitude}`)
+        const user = getUser(socket.id)
+        io.to(user.room).emit('locationMessage', generateLocationObject(latitude, longitude, user.username))
         acknowledge('Location shared!')
     })
 
     socket.on('disconnect', () => {
-        io.emit('message', 'A user has left the chat room')
+        const user = removeUser(socket.id)
+        if(user)
+            return io.to(user.room).emit('message', generateMessageObject(`${user.username} has left the chat room`, 'Admin'))
     })
 
 })
