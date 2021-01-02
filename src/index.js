@@ -84,8 +84,10 @@ io.on('connection', (socket) => {
     event, and it will have access to the data we have provided to it here ('Greetings from the server! :)')
      */
     socket.on('sendMessage', (message, acknowledge) => {
-        if(filter.isProfane(message))
+        if(filter.isProfane(message)){
+            socket.emit('message', generateMessageObject('Foul language is not allowed in the chat!', 'Admin'))
             return acknowledge('Profanity is not allowed in the chat!')
+        }
         const user = getUser(socket.id)
         io.to(user.room).emit('message', generateMessageObject(message, user.username))
         acknowledge('Message delivered by the server!')
