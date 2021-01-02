@@ -65,6 +65,10 @@ io.on('connection', (socket) => {
         entered the room pointing to that specific connections group, like using a namespace 
         ('boradcast.to(room)')*/
         socket.broadcast.to(user.room).emit('message', generateMessageObject(`${user.username} has joined the chat room!`, 'Admin'))
+        io.to(user.room).emit('roomData', {
+            room : user.room,
+            users : getUsersInRoom(user.room)
+        })
 
         acknowledge()
 
@@ -95,8 +99,13 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         const user = removeUser(socket.id)
-        if(user)
-            return io.to(user.room).emit('message', generateMessageObject(`${user.username} has left the chat room`, 'Admin'))
+        if(user) {
+            io.to(user.room).emit('message', generateMessageObject(`${user.username} has left the chat room`, 'Admin'))
+            io.to(user.room).emit('roomData', {
+                room : user.room,
+                users : getUsersInRoom(user.room)
+            })
+        }
     })
 
 })

@@ -9,10 +9,12 @@ const $messageFormInput = $messageForm.querySelector('input')
 const $messageFormButton = $messageForm.querySelector('button')
 const $locationButton = document.querySelector('#sendLocation')
 const $messages = document.querySelector('#messages')
+const $sidebar = document.querySelector('#sidebar')
 
 //Templates
 const messageTemplate = document.querySelector('#message-template').innerHTML
 const locationTemplate = document.querySelector('#location-template').innerHTML
+const sidebarTemplate = document.querySelector('#sidebar-template').innerHTML
 
 //Options from the query string
 
@@ -31,6 +33,24 @@ $messageForm.addEventListener('submit', (event) => {
     })
 })
 
+const autoscroll = () => {
+    //Get the HTML of the new message
+    const $newMessage = $messages.lastElementChild
+    //Get the height of the new message
+    const newMessagesStyles = getComputedStyle($newMessage)
+    const newMessageMargin = parseInt(newMessagesStyles.marginBottom)
+    const newMessageHeight = $newMessage.offsetHeight + newMessageMargin
+
+    //Get the visible height of the messages container ('how much it can show', doesn't change)
+    const visibleHeight = $messages.offsetHeight
+    //Total height of the messages container, it gets taller with every message that gets appended to it
+    const contentHeight = $messages.scrollHeight
+    //How far have I scrolled?
+    const scrollOffset = $messages.scrollTop + visibleHeight
+    if(contentHeight - newMessageHeight <= scrollOffset)
+        $messages.scrollTop = $messages.scrollHeight
+}
+
 socket.on('message', (message) => {
     console.log(message)
     const html = Mustache.render(messageTemplate, {
@@ -39,6 +59,7 @@ socket.on('message', (message) => {
         username : message.username
     })
     $messages.insertAdjacentHTML('beforeend', html)
+    autoscroll()
 })
 
 socket.on('locationMessage', (location) => {
@@ -49,6 +70,15 @@ socket.on('locationMessage', (location) => {
         username : location.username
     })
     $messages.insertAdjacentHTML('beforeend', html)
+    autoscroll()
+})
+
+socket.on('roomData', ({room, users}) => {
+    const html = Mustache.render(sidebarTemplate, {
+        room,
+        users
+    })
+    $sidebar.innerHTML = html
 })
 
 const success = (position) => {
